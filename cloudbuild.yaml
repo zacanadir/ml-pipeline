@@ -26,24 +26,22 @@ steps:
     - 'tests/test_pipeline.py'
 
 # 4️⃣ Submit pipeline job to Vertex AI (CD)
-- name: 'gcr.io/cloud-builders/docker'
+- name: 'us-central1-docker.pkg.dev/$PROJECT_ID/myrepo/ml-pipeline:$SHORT_SHA'
   id: 'submit-pipeline-job'
+  entrypoint: 'python'
   args:
-    - 'run'
-    - '--rm'
-    - '-v'  # optional, if you want to mount local workspace
-    - '/workspace:/app'
-    - 'us-central1-docker.pkg.dev/$PROJECT_ID/myrepo/ml-pipeline:$SHORT_SHA'
-    - 'bash'
-    - '-c'
-    - |
-      cd /app  # make sure we're in repo root
-      python -m pipelines.pipeline_job \
-        --project $PROJECT_ID \
-        --region $_REGION \
-        --pipeline_root $_PIPELINE_ROOT \
-        --display_name "ml-pipeline-$SHORT_SHA" \
-        --commit_id $SHORT_SHA
+    - '-m'
+    - 'pipelines.pipeline_job'
+    - '--project'
+    - '$PROJECT_ID'
+    - '--region'
+    - '$_REGION'
+    - '--pipeline_root'
+    - '$_PIPELINE_ROOT'
+    - '--display_name'
+    - 'ml-pipeline-$SHORT_SHA'
+    - '--commit_id'
+    - '$SHORT_SHA'
 
 
 
