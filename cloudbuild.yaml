@@ -20,8 +20,11 @@ steps:
     - 'run'
     - '--rm'
     - 'us-central1-docker.pkg.dev/$PROJECT_ID/myrepo/ml-pipeline:$SHORT_SHA'
+    - '-m'
     - 'pytest'
+    - '-q'
     - 'tests/test_pipeline.py'
+
 
 # 4️⃣ Submit pipeline job to Vertex AI (CD)
 - name: 'python:3.9'
