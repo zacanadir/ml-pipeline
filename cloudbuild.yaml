@@ -29,6 +29,8 @@ steps:
 - name: 'us-central1-docker.pkg.dev/$PROJECT_ID/myrepo/ml-pipeline:$SHORT_SHA'
   id: 'submit-pipeline-job'
   entrypoint: 'python'
+  env:
+  - PIPELINE_IMAGE_URI=us-central1-docker.pkg.dev/$PROJECT_ID/myrepo/ml-pipeline:$SHORT_SHA
   args:
     - '-m'
     - 'pipelines.pipeline_job'
