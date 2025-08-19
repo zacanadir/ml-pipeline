@@ -25,13 +25,10 @@ steps:
     - '-q'
     - 'tests/test_pipeline.py'
 
-
 # 4️⃣ Submit pipeline job to Vertex AI (CD)
-- name: 'python:3.9'
+- name: 'us-central1-docker.pkg.dev/$PROJECT_ID/myrepo/ml-pipeline:$SHORT_SHA'
   id: 'submit-pipeline-job'
   entrypoint: 'bash'
-  env:
-    - PIPELINE_IMAGE_URI=us-central1-docker.pkg.dev/$PROJECT_ID/myrepo/ml-pipeline:$SHORT_SHA
   args:
     - '-c'
     - |
@@ -41,6 +38,7 @@ steps:
         --pipeline_root $_PIPELINE_ROOT \
         --display_name "ml-pipeline-$SHORT_SHA" \
         --commit_id $SHORT_SHA
+
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/myrepo/ml-pipeline:$SHORT_SHA'
