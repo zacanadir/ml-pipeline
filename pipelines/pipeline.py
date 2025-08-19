@@ -21,7 +21,6 @@ def train_op(model_path: dsl.OutputPath(str), commit_id: str = "unknown"):
 
     print(f"✅ Model saved to {out_file}")
 
-
 @dsl.pipeline(name="hello-pipeline")
-def pipeline():
-    train_op()
+def pipeline(commit_id: str = "unknown"):
+    train_op(commit_id=commit_id)
