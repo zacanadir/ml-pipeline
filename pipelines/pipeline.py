@@ -53,15 +53,18 @@ def deploy_op(model_path: str, commit_id: str = "unknown"):
     )
     print(f"🚀 Model deployed at endpoint {endpoint.resource_name}")
 
+
 @dsl.pipeline(name="conditional-deploy-pipeline")
 def pipeline(data_path: str = "gs://taxi_model028/data/processed2/n_20_trips-00003-of-00030.jsonl",
              commit_id: str = "unknown",
              threshold: float = 0.75):
+
     # Train the model
     train_task = train_op(data_path=data_path, commit_id=commit_id)
 
-    # Evaluate score and directly pass output to dsl.If
-    with dsl.If(evaluate_op(eval_score=train_op.outputs["score"], threshold=threshold).output):
+    # Evaluate score and conditionally deploy
+    eval_task = evaluate_op(eval_score=train_task.output, threshold=threshold)
+    with dsl.If(eval_task.output):
         deploy_op(
             model_path=train_task.outputs["model_path"],
             commit_id=commit_id
