@@ -61,7 +61,7 @@ def pipeline(data_path: str = "gs://taxi_model028/data/processed2/n_20_trips-000
     train_task = train_op(data_path=data_path, commit_id=commit_id)
 
     # Evaluate score and directly pass output to dsl.If
-    with dsl.If(evaluate_op(score=train_task.output, threshold=threshold).output):
+    with dsl.If(evaluate_op(score=train_task.outputs["score"], threshold=threshold).output):
         deploy_op(
             model_path=train_task.outputs["model_path"],
             commit_id=commit_id
