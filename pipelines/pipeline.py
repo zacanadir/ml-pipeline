@@ -10,8 +10,7 @@ IMAGE_URI = os.environ.get(
 def train_op(model_path: dsl.OutputPath(str),
              data_path: str,
              commit_id: str = "unknown",
-             metrics: dsl.Output[dsl.Metrics] = None,
-             score: dsl.Output[float] = None):
+             metrics: dsl.Output[dsl.Metrics] = None) -> dsl.ContainerSpec:
     import joblib, os
     import trainer.task as my_model
 
@@ -30,7 +29,7 @@ def train_op(model_path: dsl.OutputPath(str),
     if metrics is not None:
         metrics.log_metric("r2_score", score)
 
-    return score  # return the score explicitly
+    return {"score": score, "model_path": model_path}  # return the score explicitly
 
 @dsl.component(base_image=IMAGE_URI)
 def evaluate_op(score: float, threshold: float = 0.75) -> bool:
@@ -38,7 +37,7 @@ def evaluate_op(score: float, threshold: float = 0.75) -> bool:
     print(f"📊 Model score = {score}, threshold = {threshold}, passed = {passed}")
     return passed
 
-@dsl.component(base_image="python:3.10")
+@dsl.component(base_image=IMAGE_URI)
 def deploy_op(model_path: str, commit_id: str = "unknown"):
     from google.cloud import aiplatform
 
