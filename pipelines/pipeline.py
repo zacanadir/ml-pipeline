@@ -12,9 +12,8 @@ def train_op(
     model_path: dsl.OutputPath(str),
     score: dsl.Output[float],
     data_path: str,
-    commit_id: str = "unknown",
-    metrics: dsl.Output[dsl.Metrics] = None
-):
+    commit_id: str = "unknown"
+) ->float:
     import joblib, os
     import trainer.task as my_model
 
@@ -25,15 +24,9 @@ def train_op(
     os.makedirs(model_path, exist_ok=True)
     out_file = os.path.join(model_path, f"model_{commit_id}.joblib")
     joblib.dump(model, out_file)
-    print(f"✅ Model saved to {out_file}, R² = {r2_score:.4f}")
+    print(f"Model saved to {out_file}, R² = {r2_score:.4f}")
 
-    # ---- Save score to Output ----
-    with open(score.path, "w") as f:
-        f.write(str(r2_score))
-
-    # ---- Log metrics if provided ----
-    if metrics:
-        metrics.log_metric("r2_score", r2_score)
+    return r2_score
 
 # ---- Deploy Component ----
 @dsl.component(base_image=IMAGE_URI)
@@ -90,7 +83,7 @@ def pipeline(
     # Train the model
     train_task = train_op(data_path=data_path, commit_id=commit_id)
 
-    with dsl.If(train_task.outputs["score"]>=threshold):
+    with dsl.If(train_task.output>=threshold):
         deploy_op(
             model_path=train_task.outputs["model_path"],
             commit_id=commit_id
