@@ -71,7 +71,7 @@ def pipeline(
 
     # Evaluate score and conditionally deploy
     eval_task = evaluate_op(eval_score=train_task.outputs["score"], threshold=threshold)
-    with dsl.If(eval_task.output):
+    with dsl.If(eval_task.output=="true"):
         deploy_op(
             model_path=train_task.outputs["model_path"],
             commit_id=commit_id
