@@ -10,7 +10,7 @@ IMAGE_URI = os.environ.get(
 def train_op(model_path: dsl.OutputPath(str),
              data_path: str,
              commit_id: str = "unknown",
-             metrics: dsl.Output[dsl.Metrics] = None) -> dict:
+             metrics: dsl.Output[dsl.Metrics] = None):
     import joblib, os
     import trainer.task as my_model
 
@@ -29,7 +29,7 @@ def train_op(model_path: dsl.OutputPath(str),
     if metrics is not None:
         metrics.log_metric("r2_score", score)
 
-    return {"score": score, "model_path": model_path}  # return the score explicitly
+    return score  # return the score explicitly
 
 @dsl.component(base_image=IMAGE_URI)
 def evaluate_op(eval_score: float, threshold: float = 0.75) -> bool:
