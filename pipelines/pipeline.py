@@ -6,37 +6,43 @@ IMAGE_URI = os.environ.get(
     "us-central1-docker.pkg.dev/modified-wonder-468716-e8/myrepo/ml-pipeline:latest"
 )
 
+# ---- Train Component ----
 @dsl.component(base_image=IMAGE_URI)
-def train_op(model_path: dsl.OutputPath(str),
-             data_path: str,
-             commit_id: str = "unknown",
-             metrics: dsl.Output[dsl.Metrics] = None):
+def train_op(
+    model_path: dsl.OutputPath(str),
+    score: dsl.Output[float],
+    data_path: str,
+    commit_id: str = "unknown",
+    metrics: dsl.Output[dsl.Metrics] = None
+):
     import joblib, os
     import trainer.task as my_model
 
     # ---- Train the model ----
-    model, score = my_model.train(data_path=data_path)
+    model, r2_score = my_model.train(data_path=data_path)
 
-    # ---- Ensure folder exists ----
+    # ---- Save model ----
     os.makedirs(model_path, exist_ok=True)
-
-    # ---- Save model with commit ID ----
     out_file = os.path.join(model_path, f"model_{commit_id}.joblib")
     joblib.dump(model, out_file)
-    print(f"✅ Model saved to {out_file}, R² = {score:.4f}")
+    print(f"✅ Model saved to {out_file}, R² = {r2_score:.4f}")
 
-    # ---- Log metrics ----
-    if metrics is not None:
-        metrics.log_metric("r2_score", score)
+    # ---- Save score to Output ----
+    with open(score.path, "w") as f:
+        f.write(str(r2_score))
 
-    return score  # return the score explicitly
+    # ---- Log metrics if provided ----
+    if metrics:
+        metrics.log_metric("r2_score", r2_score)
 
+# ---- Evaluate Component ----
 @dsl.component(base_image=IMAGE_URI)
 def evaluate_op(eval_score: float, threshold: float = 0.75) -> bool:
     passed = eval_score >= threshold
     print(f"📊 Model score = {eval_score}, threshold = {threshold}, passed = {passed}")
     return passed
 
+# ---- Deploy Component ----
 @dsl.component(base_image=IMAGE_URI)
 def deploy_op(model_path: str, commit_id: str = "unknown"):
     from google.cloud import aiplatform
@@ -53,17 +59,18 @@ def deploy_op(model_path: str, commit_id: str = "unknown"):
     )
     print(f"🚀 Model deployed at endpoint {endpoint.resource_name}")
 
-
+# ---- Pipeline ----
 @dsl.pipeline(name="conditional-deploy-pipeline")
-def pipeline(data_path: str = "gs://taxi_model028/data/processed2/n_20_trips-00003-of-00030.jsonl",
-             commit_id: str = "unknown",
-             threshold: float = 0.75):
-
+def pipeline(
+    data_path: str = "gs://taxi_model028/data/processed2/n_20_trips-00003-of-00030.jsonl",
+    commit_id: str = "unknown",
+    threshold: float = 0.75
+):
     # Train the model
     train_task = train_op(data_path=data_path, commit_id=commit_id)
 
     # Evaluate score and conditionally deploy
-    eval_task = evaluate_op(eval_score=train_task.output, threshold=threshold)
+    eval_task = evaluate_op(eval_score=train_task.outputs["score"], threshold=threshold)
     with dsl.If(eval_task.output):
         deploy_op(
             model_path=train_task.outputs["model_path"],
