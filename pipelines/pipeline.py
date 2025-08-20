@@ -47,17 +47,45 @@ def evaluate_op(eval_score: float, threshold: float = 0.75) -> bool:
 def deploy_op(model_path: str, commit_id: str = "unknown"):
     from google.cloud import aiplatform
 
-    aiplatform.init(project="modified-wonder-468716-e8", location="us-central1")
+    project = "modified-wonder-468716-e8"
+    location = "us-central1"
+    endpoint_display_name = "taxi-endpoint"  # fixed endpoint name
+
+    aiplatform.init(project=project, location=location)
+
+    # Upload the new model
     model = aiplatform.Model.upload(
         display_name=f"taxi-model-{commit_id}",
         artifact_uri=model_path,
-        serving_container_image_uri="us-docker.pkg.dev/vertex-ai/prediction/sklearn-cpu.1-3:latest",
+        serving_container_image_uri="us-docker.pkg.dev/vertex-ai/prediction/sklearn-cpu.1-0:latest",
     )
-    endpoint = model.deploy(
-        deployed_model_display_name=f"taxi-endpoint-{commit_id}",
-        machine_type="n1-standard-2"
+
+    # Try to find existing endpoint
+    endpoints = aiplatform.Endpoint.list(
+        filter=f'display_name="{endpoint_display_name}"',
+        location=location
     )
-    print(f"🚀 Model deployed at endpoint {endpoint.resource_name}")
+    if endpoints:
+        endpoint = endpoints[0]
+        print(f"Reusing existing endpoint: {endpoint.resource_name}")
+    else:
+        endpoint = aiplatform.Endpoint.create(display_name=endpoint_display_name)
+        print(f"Created new endpoint: {endpoint.resource_name}")
+
+    # (Optional) undeploy older models
+    if endpoint.traffic_split:  # means some models already deployed
+        for model_id in endpoint.traffic_split.keys():
+            endpoint.undeploy(model_id=model_id)
+            print(f"Undeployed previous model: {model_id}")
+
+    # Deploy new model to the endpoint
+    endpoint.deploy(
+        model=model,
+        deployed_model_display_name=f"taxi-model-{commit_id}",
+        machine_type="n1-standard-2",
+    )
+    print(f"✅ Model {commit_id} deployed at endpoint {endpoint.resource_name}")
+
 
 # ---- Pipeline ----
 @dsl.pipeline(name="conditional-deploy-pipeline")
