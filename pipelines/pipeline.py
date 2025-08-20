@@ -78,7 +78,7 @@ def pipeline(
 
     # Evaluate the score
     score_val = train_task.outputs["score"]
-    passed = evaluate_op(score=score_val, threshold=threshold)
+    passed = evaluate_op(score=score_val, threshold=threshold).output
 
     # Conditional deployment
     with dsl.If(passed):
