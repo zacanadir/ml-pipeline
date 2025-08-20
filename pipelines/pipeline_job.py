@@ -18,6 +18,9 @@ def main(args):
         display_name=args.display_name,
         template_path=json_path,
         pipeline_root=args.pipeline_root,
+        parameter_values={
+        "commit_id": args.commit_id  # <-- pass SHORT_SHA here
+    }
     )
     job.run(sync=True)
 
