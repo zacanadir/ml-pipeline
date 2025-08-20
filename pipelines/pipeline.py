@@ -6,29 +6,31 @@ IMAGE_URI = os.environ.get(
     "us-central1-docker.pkg.dev/modified-wonder-468716-e8/myrepo/ml-pipeline:latest"
 )
 
-# ---- Train Component ----
+# --- Train Component ---
+# Corrected the function signature to use the `score` output correctly.
 @dsl.component(base_image=IMAGE_URI)
 def train_op(
     model_path: dsl.OutputPath(str),
     score: dsl.Output[float],
     data_path: str,
     commit_id: str = "unknown"
-) ->float:
+): # Removed the `-> float` return type
     import joblib, os
     import trainer.task as my_model
 
-    # ---- Train the model ----
+    # --- Train the model ---
     model, r2_score = my_model.train(data_path=data_path)
 
-    # ---- Save model ----
+    # --- Save model ---
     os.makedirs(model_path, exist_ok=True)
     out_file = os.path.join(model_path, f"model_{commit_id}.joblib")
     joblib.dump(model, out_file)
     print(f"Model saved to {out_file}, R² = {r2_score:.4f}")
 
-    return r2_score
+    # Write the R² score to the output path
+    score.write(str(r2_score))
 
-# ---- Deploy Component ----
+# --- Deploy Component ---
 @dsl.component(base_image=IMAGE_URI)
 def deploy_op(model_path: str, commit_id: str = "unknown"):
     from google.cloud import aiplatform
@@ -73,7 +75,7 @@ def deploy_op(model_path: str, commit_id: str = "unknown"):
     print(f"✅ Model {commit_id} deployed at endpoint {endpoint.resource_name}")
 
 
-# ---- Pipeline ----
+# --- Pipeline ---
 @dsl.pipeline(name="conditional-deploy-pipeline")
 def pipeline(
     data_path: str = "gs://taxi_model028/data/processed2/n_20_trips-00003-of-00030.jsonl",
@@ -83,8 +85,10 @@ def pipeline(
     # Train the model
     train_task = train_op(data_path=data_path, commit_id=commit_id)
 
-    with dsl.If(train_task>=threshold):
+    # Corrected the conditional logic
+    # Use dsl.After to specify task dependencies.
+    with dsl.If(train_task.outputs["score"] >= threshold):
         deploy_op(
             model_path=train_task.outputs["model_path"],
             commit_id=commit_id
-        )
+        ).after(train_task)
