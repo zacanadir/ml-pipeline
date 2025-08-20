@@ -10,7 +10,8 @@ IMAGE_URI = os.environ.get(
 def train_op(model_path: dsl.OutputPath(str),
              data_path: str,
              commit_id: str = "unknown",
-             metrics: dsl.Output[dsl.Metrics] = None) -> float:
+             metrics: dsl.Output[dsl.Metrics] = None,
+             score: dsl.Output[float] = None):
     import joblib, os
     import trainer.task as my_model
 
