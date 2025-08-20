@@ -32,9 +32,9 @@ def train_op(model_path: dsl.OutputPath(str),
     return {"score": score, "model_path": model_path}  # return the score explicitly
 
 @dsl.component(base_image=IMAGE_URI)
-def evaluate_op(score: float, threshold: float = 0.75) -> bool:
-    passed = score >= threshold
-    print(f"📊 Model score = {score}, threshold = {threshold}, passed = {passed}")
+def evaluate_op(eval_score: float, threshold: float = 0.75) -> bool:
+    passed = eval_score >= threshold
+    print(f"📊 Model score = {eval_score}, threshold = {threshold}, passed = {passed}")
     return passed
 
 @dsl.component(base_image=IMAGE_URI)
@@ -61,7 +61,7 @@ def pipeline(data_path: str = "gs://taxi_model028/data/processed2/n_20_trips-000
     train_task = train_op(data_path=data_path, commit_id=commit_id)
 
     # Evaluate score and directly pass output to dsl.If
-    with dsl.If(evaluate_op(score=train_task.outputs["score"], threshold=threshold).output):
+    with dsl.If(evaluate_op(eval_score=train_task.outputs["score"], threshold=threshold).output):
         deploy_op(
             model_path=train_task.outputs["model_path"],
             commit_id=commit_id
