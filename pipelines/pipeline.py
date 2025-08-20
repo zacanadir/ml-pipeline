@@ -35,13 +35,6 @@ def train_op(
     if metrics:
         metrics.log_metric("r2_score", r2_score)
 
-# ---- Evaluate Component ----
-@dsl.component(base_image=IMAGE_URI)
-def evaluate_op(eval_score: float, threshold: float = 0.75) -> bool:
-    passed = eval_score >= threshold
-    print(f"📊 Model score = {eval_score}, threshold = {threshold}, passed = {passed}")
-    return passed
-
 # ---- Deploy Component ----
 @dsl.component(base_image=IMAGE_URI)
 def deploy_op(model_path: str, commit_id: str = "unknown"):
@@ -97,9 +90,7 @@ def pipeline(
     # Train the model
     train_task = train_op(data_path=data_path, commit_id=commit_id)
 
-    # Evaluate score and conditionally deploy
-    eval_task = evaluate_op(eval_score=train_task.outputs["score"], threshold=threshold)
-    with dsl.If(eval_task.output=="true"):
+    with dsl.If(train_task.outputs["score"]>=threshold):
         deploy_op(
             model_path=train_task.outputs["model_path"],
             commit_id=commit_id
