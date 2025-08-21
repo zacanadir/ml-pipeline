@@ -7,29 +7,40 @@ IMAGE_URI = os.environ.get(
     "us-central1-docker.pkg.dev/modified-wonder-468716-e8/myrepo/ml-pipeline:latest"
 )
 
+
 # --- Train Component ---
 @dsl.component(base_image=IMAGE_URI)
 def train_op(
-    model_path: dsl.OutputPath(str),
-    score: dsl.Output[float],
-    data_path: str,
-    commit_id: str = "unknown"
+    model_path: dsl.OutputPath(str),          # pipeline-managed artifact dir
+    score: dsl.OutputPath(float),             # pipeline metric file
+    data_path: str,                           # input data location
+    commit_id: str = "unknown",               # version tag
+    gcs_output_path: str = ""                 # optional permanent GCS copy
 ):
-    import joblib, os
+    import os
+    import joblib
     import trainer.task as my_model
 
     # --- Train the model ---
     model, r2_score = my_model.train(data_path=data_path)
 
-    # --- Save to pipeline artifact path ---
-    joblib.dump(model, model_path)
-    print(f"Model saved to pipeline artifact: {model_path}, R² = {r2_score:.4f}")
+    # --- Save model to pipeline artifact directory ---
+    out_file = os.path.join(model_path, f"model_{commit_id}.joblib")
+    joblib.dump(model, out_file)
+    print(f"Model saved to pipeline artifact: {out_file}, R² = {r2_score:.4f}")
 
+    # --- Optionally save a permanent copy to GCS ---
+    if gcs_output_path:
+        fs = gcsfs.GCSFileSystem()
+        target_path = gcs_output_path.rstrip("/") + f"/model_{commit_id}.joblib"
+        with fs.open(target_path, "wb") as f:
+            joblib.dump(model, f)
+        print(f"Model also saved to permanent GCS path: {target_path}")
 
-    # --- Save score ---
-    with open(score.path, "w") as f:
+    # --- Save score (just a plain text file) ---
+    with open(score, "w") as f:
         f.write(str(r2_score))
-
+    print(f"R² score saved to: {score}")
 
 # --- Deploy Component ---
 @dsl.component(base_image=IMAGE_URI)
