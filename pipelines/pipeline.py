@@ -11,10 +11,10 @@ IMAGE_URI = os.environ.get(
 # --- Train Component ---
 @dsl.component(base_image=IMAGE_URI)
 def train_op(
-    model_path: dsl.OutputPath(str),          # pipeline-managed artifact dir
-    data_path: str,                          # input data location
-    commit_id:str,
-    score: dsl.Output(float)
+    model_path: dsl.OutputPath,  # artifact
+    score: dsl.Output,           # parameter
+    data_path: str,              # input
+    commit_id: str               # input
 ):
     import os
     import joblib
