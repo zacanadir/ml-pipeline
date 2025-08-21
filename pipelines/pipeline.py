@@ -14,7 +14,7 @@ def train_op(
     model_path: dsl.OutputPath(str),          # pipeline-managed artifact dir
     data_path: str,                          # input data location
     commit_id:str
-)->float:
+):
     import os
     import joblib
     import trainer.task as my_model
