@@ -12,9 +12,8 @@ IMAGE_URI = os.environ.get(
 @dsl.component(base_image=IMAGE_URI)
 def train_op(
     model_path: dsl.OutputPath(str),          # pipeline-managed artifact dir
-    score: dsl.OutputPath(float),             # pipeline metric file
-    data_path: str,                           # input data location
-    commit_id: str = "unknown"               # version tag
+    score: dsl.Output(float),             # pipeline metric file
+    data_path: str                          # input data location
 ):
     import os
     import joblib
@@ -29,10 +28,9 @@ def train_op(
     joblib.dump(model, model_file)
     print(f"Model saved to pipeline artifact: {model_file}, R² = {r2_score:.4f}")
 
-    # --- Save score (just a plain text file) ---
-    with open(score, "w") as f:
-        f.write(str(r2_score))
-    print(f"R² score saved to: {score}")
+    # --- Output score as parameter ---
+    score.set(r2_score)
+    print(f"R² score (parameter) = {r2_score}")
 
 # --- Deploy Component ---
 @dsl.component(base_image=IMAGE_URI)
