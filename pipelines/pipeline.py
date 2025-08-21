@@ -13,7 +13,8 @@ IMAGE_URI = os.environ.get(
 def train_op(
     model_path: dsl.OutputPath(str),          # pipeline-managed artifact dir
     data_path: str,                          # input data location
-    commit_id:str
+    commit_id:str,
+    score: dsl.Output(float)
 ):
     import os
     import joblib
@@ -30,7 +31,7 @@ def train_op(
 
     # --- Output score as parameter ---
     print(f"R² score (parameter) = {r2_score}")
-    return r2_score
+    score.set(r2_score)
 
 # --- Deploy Component ---
 @dsl.component(base_image=IMAGE_URI)
@@ -88,7 +89,7 @@ def pipeline(
     train_task = train_op(data_path=data_path, commit_id=commit_id)
 
     # Deploy only if score >= threshold
-    with dsl.If(train_task.outputs['r2_score'] >= threshold):
+    with dsl.If(train_task.outputs['score'] >= threshold):
         deploy_op(
             model_path=train_task.outputs["model_path"],
             commit_id=commit_id
