@@ -14,8 +14,7 @@ def train_op(
     model_path: dsl.OutputPath(str),          # pipeline-managed artifact dir
     score: dsl.OutputPath(float),             # pipeline metric file
     data_path: str,                           # input data location
-    commit_id: str = "unknown",               # version tag
-    gcs_output_path: str = ""                 # optional permanent GCS copy
+    commit_id: str = "unknown"               # version tag
 ):
     import os
     import joblib
@@ -25,17 +24,10 @@ def train_op(
     model, r2_score = my_model.train(data_path=data_path)
 
     # --- Save model to pipeline artifact directory ---
-    out_file = os.path.join(model_path, f"model_{commit_id}.joblib")
-    joblib.dump(model, out_file)
-    print(f"Model saved to pipeline artifact: {out_file}, R² = {r2_score:.4f}")
-
-    # --- Optionally save a permanent copy to GCS ---
-    if gcs_output_path:
-        fs = gcsfs.GCSFileSystem()
-        target_path = gcs_output_path.rstrip("/") + f"/model_{commit_id}.joblib"
-        with fs.open(target_path, "wb") as f:
-            joblib.dump(model, f)
-        print(f"Model also saved to permanent GCS path: {target_path}")
+    model_file = os.path.join(model_path, f"model_{commit_id}.joblib")
+    os.makedirs(model_path, exist_ok=True)
+    joblib.dump(model, model_file)
+    print(f"Model saved to pipeline artifact: {model_file}, R² = {r2_score:.4f}")
 
     # --- Save score (just a plain text file) ---
     with open(score, "w") as f:
