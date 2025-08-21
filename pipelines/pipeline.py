@@ -23,7 +23,7 @@ def train_op(
 
     # --- Save to pipeline artifact path ---
     joblib.dump(model, model_path)
-    print(f"📦 Model saved to pipeline artifact: {model_path}, R² = {r2_score:.4f}")
+    print(f"Model saved to pipeline artifact: {model_path}, R² = {r2_score:.4f}")
 
 
     # --- Save score ---
@@ -73,7 +73,7 @@ def deploy_op(model_path: str, commit_id: str = "unknown"):
         deployed_model_display_name=f"taxi-model-{commit_id}",
         machine_type="n1-standard-2",
     )
-    print(f"✅ Model {commit_id} deployed at endpoint {endpoint.resource_name}")
+    print(f"Model {commit_id} deployed at endpoint {endpoint.resource_name}")
 
 
 # --- Pipeline ---

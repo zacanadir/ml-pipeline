@@ -6,7 +6,7 @@ import gcsfs
 
 def train(data_path: str):
     # ---- Load data from GCS ----
-    print(f"📂 Loading data from {data_path} ...")
+    print(f"Loading data from {data_path} ...")
     fs = gcsfs.GCSFileSystem()
     with fs.open(data_path, "r") as f:
         df = pd.read_json(f, lines=True)
@@ -29,7 +29,7 @@ def train(data_path: str):
     )
 
     # ---- Train model ----
-    print("🚀 Training RandomForestRegressor ...")
+    print("Training RandomForestRegressor ...")
     model = RandomForestRegressor(random_state=42)  # reproducible
     model.fit(X_train, y_train)
 
