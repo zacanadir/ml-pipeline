@@ -88,7 +88,7 @@ def pipeline(
     train_task = train_op(data_path=data_path, commit_id=commit_id)
 
     # Deploy only if score >= threshold
-    with dsl.If(train_task.output >= threshold):
+    with dsl.If(train_task.output["r2_score"] >= threshold):
         deploy_op(
             model_path=train_task.outputs["model_path"],
             commit_id=commit_id
