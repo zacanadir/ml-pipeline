@@ -1,5 +1,6 @@
 from kfp import dsl
 import os
+import gcsfs
 
 IMAGE_URI = os.environ.get(
     "PIPELINE_IMAGE_URI",
@@ -20,11 +21,10 @@ def train_op(
     # --- Train the model ---
     model, r2_score = my_model.train(data_path=data_path)
 
-    # --- Save model ---
-    os.makedirs(model_path, exist_ok=True)
-    out_file = os.path.join(model_path, f"model_{commit_id}.joblib")
-    joblib.dump(model, out_file)
-    print(f"Model saved to {out_file}, R² = {r2_score:.4f}")
+    # --- Save to pipeline artifact path ---
+    joblib.dump(model, model_path)
+    print(f"📦 Model saved to pipeline artifact: {model_path}, R² = {r2_score:.4f}")
+
 
     # --- Save score ---
     with open(score.path, "w") as f:
